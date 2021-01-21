@@ -5,7 +5,11 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include "Arduino.h"
+#include "heltec.h"
+#include "WiFi.h"
 
 // Constant Size Values
 const int PAYLOAD_SIZE = 20; // 20 bytes for payload (based on similation, can be increased based on demand)
@@ -20,9 +24,9 @@ typedef enum {DataPacket, NodeReceipt, EndReceipt} PacketType;
 // header, total space of 7 bytes
 typedef struct Header {
   PacketType packetType; // enumeration of packet type
-  char originNodeAddr[NODE_ADDR_SIZE]; // 
-  unsigned int packetID;
-  char destNodeAddr[NODE_ADDR_SIZE];
+  String originNodeAddr; // origin node address
+  unsigned int packetID; // packet identifier
+  String destNodeAddr; // destination node (server)
 } header;
 
 // data packet, total space of 39 + the size of the payload. currently is set to 20, so 59 bytes total (subject to change)
@@ -35,15 +39,14 @@ typedef struct DataPacket {
 // receipt packet, total space of 13 bytes
 typedef struct ReceiptPacket {
   header *head;
-  char nodeGettingReceipt[NODE_ADDR_SIZE];
+  String nodeGettingReceipt;
   unsigned int IPNR; // ID of Packet Needing Receipt, should be 4 bytes, however this is based on number of nodes in the network
 } receiptPacket;
 
 // probably not int here, but this returns the device mac address (maybe do last couple bytes)
-int deviceMac()
+String deviceMac()
 {
-    int deviceMacAddr = 2;
-    return deviceMacAddr;
+    return WiFi.macAddress();
 }
 
 
@@ -60,10 +63,10 @@ dataPacket createDataPacket(dataPacket packet)
 
   //header
   packet.head->packetType = DataPacket;
-  packet.head->originNodeAddr[0] = deviceMac(); // Figure out hex stuff here, maybe changes each device jump
-  packet.head->packetID = deviceMac() + 2; //array of boolean, placement of array is addition to mac, 
+  packet.head->originNodeAddr = deviceMac(); // Figure out hex stuff here, maybe changes each device jump
+  packet.head->packetID = deviceMac()[0] + 2; //array of boolean, placement of array is addition to mac, 
                                            //bool value whether to packetID is being used
-  packet.head->destNodeAddr[0] = LAND_NODE_ADDR; // Figure out hex stuff here
+  packet.head->destNodeAddr = LAND_NODE_ADDR; // Figure out hex stuff here
   
   //payload
   packet.payload = (char *)malloc(PAYLOAD_SIZE + 1);
