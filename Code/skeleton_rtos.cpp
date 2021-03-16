@@ -20,16 +20,24 @@
 #include "heltec.h"
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h> // included DHT sensor library
+#include "DHT.h" 
 
 //---DEFINITIONS---//
 #define ONE_SEC 1000 / portTICK_PERIOD_MS
 #define BAND 915E6
+#define DHTPIN 13
+#define DHTTYPE DHT22 // airSensor
 
 static const int RXPin = 13, TXPin = 12;
 static const uint32_t GPSBaud = 9600;
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
+
+// Temp/Humidity Sensor object
+DHT dht(DHTPIN, DHTTYPE);
 
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
@@ -65,6 +73,7 @@ QueueHandle_t VL; // visitor list
 //---TASK DECLARATIONS---//
 void TaskScheduler(void *pvParameters);
 void TaskWiFi(void *pvParameters);
+void TaskCreatePacket(void *pvParameters); // temporary to test DHT22 sensor
 
 //---FUNCTIONS DECLARATIONS---//
 //void printOLED(char *str); // print just a string
@@ -115,6 +124,7 @@ void setup() {
 
   // begin communication with GPS
   ss.begin(GPSBaud);
+  dht.begin();
 
   // init LoRa
   Heltec.begin(true /*DisplayEnable Enable*/, 
@@ -128,6 +138,7 @@ void setup() {
   delay(5000);
   xTaskCreatePinnedToCore(TaskScheduler, "Main task that schedules the program", 4096, NULL, configMAX_PRIORITIES, NULL, 1);
   xTaskCreatePinnedToCore(TaskWiFi, "WiFi manager", 2048, NULL, configMAX_PRIORITIES - 1, NULL, 0);
+  xTaskCreatePinnedToCore(TaskCreatePacket, "task that creates a packet and fills with data", 2048, NULL, configMAX_PRIORITIES - 2, NULL, 2); // not sure if this is how we want to do this,
 }
 
 void loop() {
@@ -204,5 +215,41 @@ void TaskWiFi(void *pvParameters)
     Serial.println("WiFi Task");
     //vTaskDelay(ONE_SEC);
     delay(1000);
+  }
+}
+
+// not creating packet yet, just incorporating temp sensor data
+voidTaskCreatePacket(void *pvParameters)
+{
+  (void)pvParameters;
+  for(;;) {
+    //Serial.println("Packet Create Task");
+    vTaskDelay(portMAX_DELAY);
+
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    float f = dht.readTemperature(true);
+
+    if(isnan(h) || isnan(t) || isnan(f))
+    {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      return;
+    }
+
+    float hif = dht.computeHeatIndex(f, h); // computer head index in F
+    float hic = dht.computeHeatIndex(t, h, false);
+
+  Serial.print(F("Humidity: "));
+  Serial.print(h);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C "));
+  Serial.print(f);
+  Serial.print(F("°F  Heat index: "));
+  Serial.print(hic);
+  Serial.print(F("°C "));
+  Serial.print(hif);
+  Serial.println(F("°F"));
+    //delay(1000);
   }
 }
