@@ -219,7 +219,7 @@ void TaskWiFi(void *pvParameters)
 }
 
 // not creating packet yet, just incorporating temp sensor data
-voidTaskCreatePacket(void *pvParameters)
+void TaskCreatePacket(void *pvParameters)
 {
   (void)pvParameters;
   for(;;) {
