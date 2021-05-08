@@ -1,4 +1,4 @@
-# LakeNet 
+# LakeNet - Stateless Broadcast Network Protocol for LoRa
 Ronnie Keating, Nate Osterberg, Luke Ryssel
 ## Objective
 The goal of this project is to develop a mesh network of nodes to be placed in buoys around lake Coeur d'Alene. These buoys will contain ESP-32 modules to monitor and record data such as O2 content, water temperature, and air temperature around the lake, and send that data back to a database in Coeur d'Alene to help with future lake reclamation projects.  
